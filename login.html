@@ -36,39 +36,112 @@
             border-radius: 4px;
         }
 
+        /* 修改按钮样式 */
         .login-container button {
             width: 100%;
             padding: 10px;
-            background-color: #007BFF;
-            color: #fff;
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            margin-bottom: 10px;
+            /* 添加按钮间距 */
         }
 
-        .login-container button:hover {
+        /* 登录按钮颜色 */
+        .login-container button:nth-of-type(1) {
+            background-color: #007BFF;
+            color: #fff;
+        }
+
+        /* 登录按钮悬停颜色 */
+        .login-container button:nth-of-type(1):hover {
             background-color: #0056b3;
+        }
+
+        /* 注册按钮颜色 */
+        .login-container button:nth-of-type(2) {
+            background-color: #28a745;
+            color: #fff;
+        }
+
+        /* 注册按钮悬停颜色 */
+        .login-container button:nth-of-type(2):hover {
+            background-color: #218838;
+        }
+
+        .register-form {
+            display: none;
         }
     </style>
 </head>
 
 <body>
     <div class="login-container">
-        <h2>登录</h2>
+        <h2 id="loginTitle">登录</h2>
         <input type="text" id="username" placeholder="用户名">
         <input type="password" id="password" placeholder="密码">
         <button onclick="login()">登录</button>
+        <button onclick="showRegisterForm()">注册</button>
+
+        <div class="register-form" id="registerForm">
+            <h2>注册</h2>
+            <input type="text" id="registerUsername" placeholder="用户名">
+            <input type="password" id="registerPassword" placeholder="密码">
+            <input type="password" id="confirmPassword" placeholder="确认密码">
+            <button onclick="register()">注册</button>
+            <button onclick="hideRegisterForm()">返回登录</button>
+        </div>
     </div>
     <script>
         function login() {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
-            fetch('http://localhost:5000/api/login')
+            fetch(`http://127.0.0.1:5000/api/login?name=${username}&password=${password}`)
                 .then(response => response.json())
                 .then(data => {
-                    if(data.success) window.location.href = 'index.html';
+                    if (data.success) window.location.href = 'index.html';
                     else alert(data.error);
+                });
+        }
+
+        function showRegisterForm() {
+            document.getElementById('registerForm').style.display = 'block';
+            document.getElementById('loginTitle').style.display = 'none';
+            const loginInputs = document.querySelectorAll('#username, #password');
+            const loginButtons = document.querySelectorAll('.login-container button:not(#registerForm button)');
+            loginInputs.forEach(input => input.style.display = 'none');
+            loginButtons.forEach(button => button.style.display = 'none');
+        }
+
+        function hideRegisterForm() {
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('loginTitle').style.display = 'block';
+            const loginInputs = document.querySelectorAll('#username, #password');
+            const loginButtons = document.querySelectorAll('.login-container button:not(#registerForm button)');
+            loginInputs.forEach(input => input.style.display = 'block');
+            loginButtons.forEach(button => button.style.display = 'block');
+        }
+
+        function register() {
+            const username = document.getElementById('registerUsername').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (password != confirmPassword) {
+                alert('两次输入的密码不一致，请重新输入！');
+                return;
+            }
+
+            fetch(`http://127.0.0.1:5000/api/register?name=${username}&password=${password}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('注册成功，请登录');
+                        hideRegisterForm();
+                    } else {
+                        alert(data.error);
+                    }
                 });
         }
     </script>

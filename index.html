@@ -254,7 +254,7 @@
         let isLoading = false;
 
         // 获取所有车站名称
-        fetch('http://localhost:5000/api/stations')
+        fetch('http://127.0.0.1:5000/api/stations')
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -330,7 +330,7 @@
                 const date = document.getElementById('date').value;
 
                 // 获取车站代码（需先请求车站字典）
-                fetch('http://localhost:5000/api/stations')
+                fetch('http://127.0.0.1:5000/api/stations')
                     .then(response => response.json())
                     .then(data => {
                         if (!data.success) throw new Error("获取车站代码失败");
@@ -343,7 +343,7 @@
                         }
 
                         // 请求车票数据
-                        fetch(`http://localhost:5000/api/tickets?from=${fromStation}&to=${toStation}&date=${date}`)
+                        fetch(`http://127.0.0.1:5000/api/tickets?from=${fromStation}&to=${toStation}&date=${date}`)
                             .then(response => response.json())
                             .then(data => {
                                 if (data.success) {

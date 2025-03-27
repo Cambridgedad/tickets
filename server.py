@@ -3,14 +3,55 @@ import logging
 import requests
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+import mysql.connector
 
 app = Flask(__name__)
 CORS(app)
+
+logging.basicConfig(
+    level=logging.INFO,
+    filename='app.log',  # 相对路径，日志文件名为 app.log
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 headers = {
     "User-Agent": "",
     "Cookie": ""
 }
+
+
+def connect_sql():
+    return mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="88888888",
+        database="mysql"
+    )
+
+
+init_connection = None
+init_cursor = None
+try:
+    init_connection = connect_sql()
+    init_cursor = init_connection.cursor()
+    create_table_query = """
+                CREATE TABLE IF NOT EXISTS users (
+                name VARCHAR(255) NOT NULL PRIMARY KEY,
+                password VARCHAR(255) NOT NULL
+            )
+            """
+    init_cursor.execute(create_table_query)
+    init_insert_query = "INSERT INTO users (name, password) VALUES (admin, admin)"
+    init_cursor.execute(init_insert_query)
+    init_connection.commit()
+except mysql.connector.Error:
+    if init_connection:
+        init_connection.rollback()
+finally:
+    if init_cursor:
+        init_cursor.close()
+    if init_connection and init_connection.is_connected():
+        init_connection.close()
 
 
 def get_station_code():
@@ -73,7 +114,77 @@ def get_tickets():
         return jsonify({"success": False, "error": str(e)})
 
 
+@app.route("/api/login")
+def login():
+    name = request.args.get('name')
+    password = request.args.get('password')
+
+    connection = None
+    cursor = None
+    try:
+        connection = connect_sql()
+        cursor = connection.cursor()
+
+        select_rename_query = "SELECT * FROM users WHERE name = %s"
+        cursor.execute(select_rename_query, (name,))
+        result = cursor.fetchall()
+        if len(result) == 0:
+            return jsonify({"success": False, "error": "用户不存在"})
+
+        select_password_query = "SELECT * FROM users WHERE name = %s AND password = %s"
+        cursor.execute(select_password_query, (name, password))
+        result = cursor.fetchall()
+        if len(result) == 0:
+            return jsonify({"success": False, "error": "密码错误"})
+
+        return jsonify({"success": True, "data": name})
+
+    except mysql.connector.Error as e:
+        logging.error(e)
+        if connection:
+            connection.rollback()
+        return jsonify({"success": False, "error": "内部错误"})
+    finally:
+        if cursor:
+            cursor.close()
+        if connection and connection.is_connected():
+            connection.close()
+
+
+@app.route("/api/register")
+def register():
+    name = request.args.get("name")
+    password = request.args.get("password")
+
+    connection = None
+    cursor = None
+    try:
+        connection = connect_sql()
+        cursor = connection.cursor()
+
+        select_rename_query = "SELECT * FROM users WHERE name = %s"
+        cursor.execute(select_rename_query, (name,))
+        result = cursor.fetchall()
+        if len(result) == 1:
+            return jsonify({"success": False, "error": "用户已存在"})
+
+        insert_query = "INSERT INTO users (name, password) VALUES (%s, %s)"
+        cursor.execute(insert_query, (name, password))
+        connection.commit()
+
+        return jsonify({"success": True, "data": name})
+
+    except mysql.connector.Error as e:
+        logging.error(e)
+        if connection:
+            connection.rollback()
+        return jsonify({"success": False, "error": "内部错误"})
+    finally:
+        if cursor:
+            cursor.close()
+        if connection and connection.is_connected():
+            connection.close()
+
+
 if __name__ == '__main__':
-     app.run(port=5000, debug=True)
-    # get_tickets()
-    # get_all_stations()
+    app.run(port=5000, debug=True)
