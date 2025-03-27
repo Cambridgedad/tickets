@@ -186,5 +186,69 @@ def register():
             connection.close()
 
 
+# 获取所有用户信息的接口
+@app.route("/api/users")
+def get_all_users():
+    connection = None
+    cursor = None
+    try:
+        connection = connect_sql()
+        cursor = connection.cursor()
+
+        select_query = "SELECT * FROM users"
+        cursor.execute(select_query)
+        result = cursor.fetchall()
+
+        users = []
+        for row in result:
+            users.append({"name": row[0]})
+        return jsonify({"success": True, "data": users})
+    except mysql.connector.Error as e:
+        logging.error(e)
+        if connection:
+            connection.rollback()
+        return jsonify({"success": False, "error": "内部错误"})
+    finally:
+        if cursor:
+            cursor.close()
+        if connection and connection.is_connected():
+            connection.close()
+
+
+# 修改用户密码的接口
+@app.route("/api/change_password")
+def change_password():
+    name = request.args.get('name')
+    password = request.args.get('password')
+
+    connection = None
+    cursor = None
+    try:
+        connection = connect_sql()
+        cursor = connection.cursor()
+
+        select_query = "SELECT * FROM users Where name = %s"
+        cursor.execute(select_query, (name,))
+        result = cursor.fetchall()
+        if len(result) == 0:
+            return jsonify({"success": False, "error": "用户不存在"})
+
+        update_query = "UPDATE users SET password = %s WHERE name = %s"
+        cursor.execute(update_query, (password, name))
+        connection.commit()
+
+        return jsonify({"success": True, "message": "密码修改成功"})
+    except mysql.connector.Error as e:
+        logging.error(e)
+        if connection:
+            connection.rollback()
+        return jsonify({"success": False, "error": "内部错误"})
+    finally:
+        if cursor:
+            cursor.close()
+        if connection and connection.is_connected():
+            connection.close()
+
+
 if __name__ == '__main__':
     app.run(port=5000, debug=True)

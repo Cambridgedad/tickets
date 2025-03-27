@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理</title>
+    <!-- 引入 Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            position: relative; /* 为返回按钮的绝对定位提供参考 */
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        /* 调整输入框样式 */
+        input[type="password"] {
+            width: 80%; /* 缩短输入框长度 */
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+
+        /* 调整按钮样式 */
+        button {
+            padding: 12px 24px; /* 增大按钮尺寸 */
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        /* 返回按钮样式 */
+        #backButton {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #007BFF; /* 蓝色背景 */
+            border-radius: 50%; /* 圆形按钮 */
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+        }
+
+        #backButton i {
+            font-size: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 新增返回按钮 -->
+    <button id="backButton" onclick="goBack()">
+        <i class="fa-solid fa-arrow-left"></i> <!-- 左箭头图标 -->
+    </button>
+    <h1>用户管理</h1>
+    <table id="userTable">
+        <thead>
+            <tr>
+                <th>用户名</th>
+                <th>原密码</th>
+                <th>新密码</th>
+                <th>确认新密码</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- 这里将动态插入用户信息 -->
+        </tbody>
+    </table>
+
+    <script>
+        // 获取所有用户信息
+        fetch('http://127.0.0.1:5000/api/users')
+           .then(response => response.json())
+           .then(data => {
+                if (data.success) {
+                    const users = data.data;
+                    const tbody = document.querySelector('#userTable tbody');
+                    users.forEach(user => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${user.name}</td>
+                            <td><input type="password" id="oldPassword_${user.name}"></td>
+                            <td><input type="password" id="newPassword_${user.name}"></td>
+                            <td><input type="password" id="confirmPassword_${user.name}"></td>
+                            <td><button onclick="changePassword('${user.name}')">修改密码</button></td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+            });
+
+        // 修改用户密码
+        function changePassword(username) {
+            const oldPassword = document.getElementById(`oldPassword_${username}`).value;
+            const newPassword = document.getElementById(`newPassword_${username}`).value;
+            const confirmPassword = document.getElementById(`confirmPassword_${username}`).value;
+
+            // 验证两次输入的新密码是否一致
+            if (newPassword!== confirmPassword) {
+                alert('两次输入的新密码不一致，请重新输入');
+                return;
+            }
+
+            // 先验证原密码
+            fetch(`http://127.0.0.1:5000/api/login?name=${username}&password=${oldPassword}`)
+               .then(response => response.json())
+               .then(data => {
+                    if (data.success) {
+                        // 原密码验证通过，修改密码
+                        fetch(`http://127.0.0.1:5000/api/change_password?name=${username}&password=${newPassword}`)
+                           .then(response => response.json())
+                           .then(data => {
+                                if (data.success) {
+                                    alert('密码修改成功');
+                                } else {
+                                    alert('密码修改失败: ' + data.error);
+                                }
+                            });
+                    } else {
+                        alert('原密码输入错误');
+                    }
+                });
+        }
+
+        // 返回上一页函数
+        function goBack() {
+            window.history.back();
+        }
+    </script>
+</body>
+
+</html>    
